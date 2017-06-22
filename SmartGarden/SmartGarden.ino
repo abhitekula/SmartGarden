@@ -1,50 +1,51 @@
 /*
-  Analog Input
- Demonstrates analog input by reading an analog sensor on analog pin 0 and
- turning on and off a light emitting diode(LED)  connected to digital pin 13.
- The amount of time the LED will be on and off depends on
- the value obtained by analogRead().
-
- The circuit:
- * Potentiometer attached to analog input 0
- * center pin of the potentiometer to the analog pin
- * one side pin (either one) to ground
- * the other side pin to +5V
- * LED anode (long leg) attached to digital output 13
- * LED cathode (short leg) attached to ground
-
- * Note: because most Arduinos have a built-in LED attached
- to pin 13 on the board, the LED is optional.
-
-
- Created by David Cuartielles
- modified 30 Aug 2011
- By Tom Igoe
-
- This example code is in the public domain.
-
- http://www.arduino.cc/en/Tutorial/AnalogInput
-
+ * Automatic Watering Garden Code
+ * By: Abhinav T
  */
 
-int sensorPin = A0;    // select the input pin for the potentiometer
+int sensorPin = A0;    // select the input pin for the water soil sensor
 int ledPin = 13;      // select the pin for the LED
 int sensorValue = 0;  // variable to store the value coming from the sensor
+int relayPin = 7; // Pin for output relay (turning on water pump/opening water solenoid)
+
+boolean Time = false; //Whether to use a time limit or the stopWateringThreshold to stop watering
+int waterThreshold = 750; // When the soil moisture level is above this point start watering
+double timeThreshold = 300000; // Time Threshold to stop watering in milliSeconds
+int stopWateringThreshold = 400; // When the soil moisture level is below this point stop watering
+
+boolean watering = false;
+double startTime;
+double currentTime;
+double amtDelay;  //Increases the delay when checking the moisture while not watering to save power and decreases the delay when watering to check the current moisture more rapidly
 
 void setup() {
   // declare the ledPin as an OUTPUT:
+  pinMode(relayPin, OUTPUT);
   pinMode(ledPin, OUTPUT);
 }
 
 void loop() {
   // read the value from the sensor:
   sensorValue = analogRead(sensorPin);
-  // turn the ledPin on
-  digitalWrite(ledPin, HIGH);
-  // stop the program for <sensorValue> milliseconds:
-  delay(sensorValue);
-  // turn the ledPin off:
-  digitalWrite(ledPin, LOW);
-  // stop the program for for <sensorValue> milliseconds:
-  delay(sensorValue);
+  currentTime = millis();
+  amtDelay=10000; //Delay for 10 seconds if not watering
+  if(watering){ //Checks to see if it is currently watering to know when it should stop watering
+    amtDelay=1000; // Change delay to 1 second if watering
+    if(Time && (currentTime - startTime)>timeThreshold){ //Check to see if it should use time limit to dictate when to stop watering
+      watering=false;
+      digitalWrite(relayPin, LOW);
+    }
+    else if(sensorValue<stopWateringThreshold){
+        watering = false;
+        digitalWrite(relayPin,LOW);
+    }
+   }
+   else{ //When not watering check to see if soil moisture levl is above water threshold
+    if(sensorValue>waterThreshold){
+      watering = true;
+      digitalWrite(relayPin, HIGH);
+      amtDelay=1000;
+    }
+  }
+  delay(amtDelay);
 }
